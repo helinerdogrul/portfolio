@@ -186,11 +186,11 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      width: min(43%, 34rem);
-      height: 40%;
+      width: min(46%, 36rem);
+      height: 43%;
       overflow: visible;
-      opacity: 0.88;
-      filter: drop-shadow(0 0 18px rgba(182, 0, 0, 0.18));
+      opacity: 0.82;
+      filter: drop-shadow(0 0 10px rgba(182, 0, 0, 0.08));
       pointer-events: none;
       transform: translate(-50%, -50%);
       transition: opacity 700ms ease;
@@ -641,8 +641,8 @@
       .hero-visual { aspect-ratio: 0.78 / 1; }
 
       .hero-fallback {
-        width: 70%;
-        height: 38%;
+        width: 75%;
+        height: 41%;
       }
 
       .footer-bottom { grid-template-columns: 1fr auto; row-gap: 1.3rem; }
@@ -709,15 +709,15 @@
         <canvas class="hero-canvas" aria-hidden="true"></canvas>
         <svg class="hero-fallback" viewBox="0 0 420 260" aria-hidden="true" focusable="false">
           <g opacity="0.96">
-            <path d="M71 165C99 86 155 68 217 122C279 176 317 168 350 90" stroke="#8f0000" stroke-width="2.1"/>
-            <path d="M88 84C142 180 218 197 308 102C326 83 342 99 333 131" stroke="#b60000" stroke-width="1.7"/>
-            <path d="M117 189C91 140 132 74 206 84C287 95 322 145 303 188" stroke="#6f0000" stroke-width="2.5"/>
-            <path d="M100 125C151 104 190 179 250 165C303 153 306 88 277 69" stroke="#a10707" stroke-width="1.5"/>
-            <path d="M144 65C171 84 151 145 197 181C236 212 285 161 268 111" stroke="#770000" stroke-width="2.8"/>
-            <path d="M77 139C132 155 159 112 208 105C262 97 303 125 344 151" stroke="#9b0000" stroke-width="1.8"/>
-            <path d="M126 97C177 57 251 71 290 130C319 174 278 202 230 177" stroke="#5d0000" stroke-width="2.2"/>
-            <path d="M158 194C190 148 166 99 207 70C241 45 297 83 302 126" stroke="#b60000" stroke-width="1.4"/>
-            <path d="M91 111C126 175 193 146 239 100C277 62 325 85 326 126" stroke="#820000" stroke-width="2.4"/>
+            <path d="M71 165C99 86 155 68 217 122C279 176 317 168 350 90" stroke="#8f0000" stroke-width="1.2"/>
+            <path d="M88 84C142 180 218 197 308 102C326 83 342 99 333 131" stroke="#b60000" stroke-width="1"/>
+            <path d="M117 189C91 140 132 74 206 84C287 95 322 145 303 188" stroke="#6f0000" stroke-width="1.4"/>
+            <path d="M100 125C151 104 190 179 250 165C303 153 306 88 277 69" stroke="#a10707" stroke-width="0.9"/>
+            <path d="M144 65C171 84 151 145 197 181C236 212 285 161 268 111" stroke="#770000" stroke-width="1.6"/>
+            <path d="M77 139C132 155 159 112 208 105C262 97 303 125 344 151" stroke="#9b0000" stroke-width="1"/>
+            <path d="M126 97C177 57 251 71 290 130C319 174 278 202 230 177" stroke="#5d0000" stroke-width="1.3"/>
+            <path d="M158 194C190 148 166 99 207 70C241 45 297 83 302 126" stroke="#b60000" stroke-width="0.8"/>
+            <path d="M91 111C126 175 193 146 239 100C277 62 325 85 326 126" stroke="#820000" stroke-width="1.4"/>
           </g>
         </svg>
         <p class="visual-meta">Move to explore</p>
@@ -1021,32 +1021,42 @@
       sculpture.rotation.set(-0.12, -0.24, 0.06);
       scene.add(sculpture);
 
-      const threadColors = [0x500000, 0x680000, 0x7d0000, 0x930404, 0xb60000];
+      const threadColors = [0x430000, 0x570000, 0x6d0000, 0x830000, 0x9a0000, 0xb60000];
       const threadMeshes = [];
       const disposableMaterials = [];
       const disposableGeometries = [];
       const threadCount = 10;
-      const anchorCount = 18;
+      const anchorCount = 20;
 
       for (let threadIndex = 0; threadIndex < threadCount; threadIndex += 1) {
-        const phase = threadIndex * 0.73;
+        const phase = threadIndex * 0.79 + Math.sin(threadIndex * 1.7) * 0.12;
+        const threadBias = (threadIndex - (threadCount - 1) * 0.5) / threadCount;
+        const xFrequency = 1.02 + (threadIndex % 4) * 0.067;
+        const yFrequency = 0.76 + (threadIndex % 3) * 0.071;
         const points = [];
 
         for (let anchorIndex = 0; anchorIndex < anchorCount; anchorIndex += 1) {
           const progress = anchorIndex / (anchorCount - 1);
           const angle = progress * Math.PI * 2;
-          const irregularity = 1 + 0.08 * Math.sin(angle * 4.3 + phase * 1.7);
+          const progressSkew = progress - 0.5;
+          const irregularity =
+            1 +
+            0.13 * Math.sin(angle * (3.1 + (threadIndex % 3) * 0.47) + phase * 1.7) +
+            0.045 * Math.cos(angle * 6.2 - phase);
           const x = (
-            Math.sin(angle * 1.15 + phase) * 0.82 +
-            Math.sin(angle * 4.1 - phase * 0.6) * 0.16
-          ) * irregularity;
+            Math.sin(angle * xFrequency + phase) * (0.79 + threadBias * 0.12) +
+            Math.sin(angle * 4.17 - phase * 0.63) * 0.17 +
+            progressSkew * Math.sin(phase * 2.2) * 0.16
+          ) * irregularity + threadBias * 0.07;
           const y = (
-            Math.cos(angle * 0.86 + phase * 0.48) * 0.61 +
-            Math.sin(angle * 3.2 + phase) * 0.18
+            Math.cos(angle * yFrequency + phase * 0.43) * 0.6 +
+            Math.sin(angle * 3.27 + phase * 1.08) * 0.19 +
+            progressSkew * Math.cos(phase * 1.4) * 0.14
           ) * irregularity;
           const z =
-            Math.sin(angle * 1.78 - phase * 0.72) * 0.5 +
-            Math.cos(angle * 4.7 + phase) * 0.14;
+            Math.sin(angle * (1.61 + (threadIndex % 5) * 0.052) - phase * 0.71) * 0.49 +
+            Math.cos(angle * 4.83 + phase * 0.91) * 0.15 +
+            progressSkew * threadBias * 0.22;
 
           points.push(new THREE.Vector3(x, y, z));
         }
@@ -1054,18 +1064,18 @@
         const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal', 0.5);
         const geometry = new THREE.TubeGeometry(
           curve,
-          144,
-          0.013 + (threadIndex % 4) * 0.0027,
-          6,
+          168,
+          0.008 + (threadIndex % 5) * 0.00125,
+          5,
           false
         );
         const color = new THREE.Color(threadColors[threadIndex % threadColors.length]);
         const material = new THREE.MeshStandardMaterial({
           color,
-          emissive: color.clone().multiplyScalar(0.3),
-          emissiveIntensity: 0.34,
-          metalness: 0.02,
-          roughness: 0.76
+          emissive: color.clone().multiplyScalar(0.16),
+          emissiveIntensity: 0.14,
+          metalness: 0,
+          roughness: 0.9
         });
         const thread = new THREE.Mesh(geometry, material);
         const separationDirection = new THREE.Vector3(
@@ -1086,10 +1096,10 @@
         disposableMaterials.push(material);
       }
 
-      const ambientLight = new THREE.AmbientLight(0x350000, 1.9);
-      const keyLight = new THREE.DirectionalLight(0xb60000, 3);
-      const rimLight = new THREE.DirectionalLight(0x5c0000, 2.4);
-      const innerLight = new THREE.PointLight(0x940000, 15, 5.5, 1.8);
+      const ambientLight = new THREE.AmbientLight(0x300000, 1.55);
+      const keyLight = new THREE.DirectionalLight(0xb60000, 2.45);
+      const rimLight = new THREE.DirectionalLight(0x520000, 1.8);
+      const innerLight = new THREE.PointLight(0x820000, 5.5, 4.8, 2);
       keyLight.position.set(2.7, 3.1, 4.6);
       rimLight.position.set(-3.4, -1.2, -2.4);
       innerLight.position.set(0, 0, 0.45);
@@ -1125,7 +1135,7 @@
 
         const visibleHeight =
           2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * camera.position.z;
-        baseScale = (visibleHeight * 0.43) / Math.max(naturalSize.y, 0.001);
+        baseScale = (visibleHeight * 0.45) / Math.max(naturalSize.y, 0.001);
         sculpture.scale.setScalar(baseScale * compression);
         renderScene();
       };
@@ -1140,8 +1150,8 @@
         const correctedX = centeredX * camera.aspect;
         const distance = Math.hypot(correctedX, centeredY);
 
-        pointer.targetX = centeredX * 0.34;
-        pointer.targetY = centeredY * 0.24;
+        pointer.targetX = centeredX * 0.2;
+        pointer.targetY = centeredY * 0.13;
         pointer.targetProximity = THREE.MathUtils.clamp(1 - distance / 0.34, 0, 1);
       };
 
@@ -1170,20 +1180,20 @@
         timer.update(timestamp);
         const delta = Math.min(timer.getDelta(), 0.05);
         const elapsed = timer.getElapsed();
-        idleRotation = (idleRotation + delta * 0.022) % (Math.PI * 2);
+        idleRotation = (idleRotation + delta * 0.01) % (Math.PI * 2);
 
         if (coarsePointer) {
-          pointer.targetX = Math.sin(elapsed * 0.16) * 0.1;
-          pointer.targetY = Math.cos(elapsed * 0.13) * 0.07;
-          pointer.targetProximity = 0.1 + Math.sin(elapsed * 0.21) * 0.04;
+          pointer.targetX = Math.sin(elapsed * 0.12) * 0.065;
+          pointer.targetY = Math.cos(elapsed * 0.1) * 0.045;
+          pointer.targetProximity = 0.08 + Math.sin(elapsed * 0.16) * 0.025;
         }
 
-        pointer.x = THREE.MathUtils.damp(pointer.x, pointer.targetX, 2.4, delta);
-        pointer.y = THREE.MathUtils.damp(pointer.y, pointer.targetY, 2.4, delta);
+        pointer.x = THREE.MathUtils.damp(pointer.x, pointer.targetX, 1.35, delta);
+        pointer.y = THREE.MathUtils.damp(pointer.y, pointer.targetY, 1.35, delta);
         pointer.proximity = THREE.MathUtils.damp(
           pointer.proximity,
           pointer.targetProximity,
-          2.1,
+          1.45,
           delta
         );
 
@@ -1195,29 +1205,29 @@
         sculpture.rotation.x = THREE.MathUtils.damp(
           sculpture.rotation.x,
           -0.12 + pointer.y,
-          2,
+          1.25,
           delta
         );
         sculpture.rotation.y = THREE.MathUtils.damp(
           sculpture.rotation.y,
           -0.24 + idleRotation + pointer.x,
-          1.7,
+          1.1,
           delta
         );
         sculpture.rotation.z = THREE.MathUtils.damp(
           sculpture.rotation.z,
-          0.06 + Math.sin(elapsed * 0.11) * 0.025,
-          1.3,
+          0.06 + Math.sin(elapsed * 0.075) * 0.015,
+          0.9,
           delta
         );
         sculpture.scale.setScalar(baseScale * compression);
 
         threadMeshes.forEach((thread, index) => {
           const direction = thread.userData.separationDirection;
-          const distance = pointer.proximity * (0.075 + (index % 3) * 0.014);
-          thread.position.x = THREE.MathUtils.damp(thread.position.x, direction.x * distance, 2.8, delta);
-          thread.position.y = THREE.MathUtils.damp(thread.position.y, direction.y * distance, 2.8, delta);
-          thread.position.z = THREE.MathUtils.damp(thread.position.z, direction.z * distance, 2.8, delta);
+          const distance = pointer.proximity * (0.065 + (index % 3) * 0.012);
+          thread.position.x = THREE.MathUtils.damp(thread.position.x, direction.x * distance, 1.7, delta);
+          thread.position.y = THREE.MathUtils.damp(thread.position.y, direction.y * distance, 1.7, delta);
+          thread.position.z = THREE.MathUtils.damp(thread.position.z, direction.z * distance, 1.7, delta);
         });
 
         renderScene();
