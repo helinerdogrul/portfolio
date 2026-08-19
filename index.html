@@ -177,6 +177,33 @@
       width: 100%;
       height: 100%;
       inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 900ms ease;
+    }
+
+    .hero-fallback {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: min(43%, 34rem);
+      height: 40%;
+      overflow: visible;
+      opacity: 0.88;
+      filter: drop-shadow(0 0 18px rgba(182, 0, 0, 0.18));
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      transition: opacity 700ms ease;
+    }
+
+    .hero-visual.is-webgl .hero-canvas { opacity: 1; }
+    .hero-visual.is-webgl .hero-fallback { opacity: 0; }
+
+    .hero-fallback path {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
     }
 
     .visual-meta {
@@ -613,6 +640,11 @@
 
       .hero-visual { aspect-ratio: 0.78 / 1; }
 
+      .hero-fallback {
+        width: 70%;
+        height: 38%;
+      }
+
       .footer-bottom { grid-template-columns: 1fr auto; row-gap: 1.3rem; }
 
       .footer-bottom > :first-child {
@@ -651,6 +683,9 @@
         transform: none;
         will-change: auto;
       }
+
+      .hero-canvas,
+      .hero-fallback { transition: none; }
     }
   </style>
 </head>
@@ -670,9 +705,21 @@
 
   <main id="main">
     <div class="site-shell">
-      <!-- This interactive stage can later be replaced with a video or WebGL/3D embed. -->
-      <section class="hero-visual reveal reveal--hero" aria-label="Interactive visual canvas">
+      <section class="hero-visual reveal reveal--hero" aria-label="Interactive red thread sculpture">
         <canvas class="hero-canvas" aria-hidden="true"></canvas>
+        <svg class="hero-fallback" viewBox="0 0 420 260" aria-hidden="true" focusable="false">
+          <g opacity="0.96">
+            <path d="M71 165C99 86 155 68 217 122C279 176 317 168 350 90" stroke="#8f0000" stroke-width="2.1"/>
+            <path d="M88 84C142 180 218 197 308 102C326 83 342 99 333 131" stroke="#b60000" stroke-width="1.7"/>
+            <path d="M117 189C91 140 132 74 206 84C287 95 322 145 303 188" stroke="#6f0000" stroke-width="2.5"/>
+            <path d="M100 125C151 104 190 179 250 165C303 153 306 88 277 69" stroke="#a10707" stroke-width="1.5"/>
+            <path d="M144 65C171 84 151 145 197 181C236 212 285 161 268 111" stroke="#770000" stroke-width="2.8"/>
+            <path d="M77 139C132 155 159 112 208 105C262 97 303 125 344 151" stroke="#9b0000" stroke-width="1.8"/>
+            <path d="M126 97C177 57 251 71 290 130C319 174 278 202 230 177" stroke="#5d0000" stroke-width="2.2"/>
+            <path d="M158 194C190 148 166 99 207 70C241 45 297 83 302 126" stroke="#b60000" stroke-width="1.4"/>
+            <path d="M91 111C126 175 193 146 239 100C277 62 325 85 326 126" stroke="#820000" stroke-width="2.4"/>
+          </g>
+        </svg>
         <p class="visual-meta">Move to explore</p>
       </section>
 
@@ -922,99 +969,314 @@
         counters.forEach((counter) => counterObserver.observe(counter));
       }
 
+    })();
+  </script>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.min.js';
+
+    (() => {
       const stage = document.querySelector('.hero-visual');
       const canvas = document.querySelector('.hero-canvas');
-      const context = canvas.getContext('2d');
-      let width = 0;
-      let height = 0;
-      let animationFrame = 0;
-      let lastMove = performance.now();
-      const pointer = { x: 0.5, y: 0.5, targetX: 0.5, targetY: 0.5, energy: 0 };
+      if (!stage || !canvas) return;
 
-      const resizeCanvas = () => {
-        const ratio = Math.min(window.devicePixelRatio || 1, 2);
-        const bounds = stage.getBoundingClientRect();
-        width = bounds.width;
-        height = bounds.height;
-        canvas.width = Math.round(width * ratio);
-        canvas.height = Math.round(height * ratio);
-        canvas.style.width = `${width}px`;
-        canvas.style.height = `${height}px`;
-        context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      };
-
-      const updatePointer = (clientX, clientY) => {
-        const bounds = stage.getBoundingClientRect();
-        pointer.targetX = (clientX - bounds.left) / bounds.width;
-        pointer.targetY = (clientY - bounds.top) / bounds.height;
-        pointer.energy = 1;
-        lastMove = performance.now();
-      };
-
-      stage.addEventListener('pointermove', (event) => updatePointer(event.clientX, event.clientY));
-      stage.addEventListener('pointerdown', (event) => {
-        updatePointer(event.clientX, event.clientY);
-        pointer.energy = 2.4;
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const coarsePointer = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+      const abortController = new AbortController();
+      const listenerOptions = { signal: abortController.signal, passive: true };
+      const webglContext = canvas.getContext('webgl2', {
+        alpha: false,
+        antialias: true,
+        depth: true,
+        powerPreference: 'high-performance'
       });
 
-      const draw = (time) => {
-        pointer.x += (pointer.targetX - pointer.x) * 0.055;
-        pointer.y += (pointer.targetY - pointer.y) * 0.055;
-        pointer.energy *= 0.976;
+      if (!webglContext) return;
 
-        if (time - lastMove > 2400) {
-          pointer.targetX = 0.5 + Math.sin(time * 0.00023) * 0.16;
-          pointer.targetY = 0.5 + Math.cos(time * 0.00031) * 0.13;
-        }
-
-        context.clearRect(0, 0, width, height);
-        const x = pointer.x * width;
-        const y = pointer.y * height;
-        const smallestSide = Math.min(width, height);
-        const radius = smallestSide * (0.22 + Math.min(pointer.energy, 1.5) * 0.025);
-
-        const glow = context.createRadialGradient(x, y, 0, x, y, radius * 1.7);
-        glow.addColorStop(0, `rgba(182, 0, 0, ${0.17 + pointer.energy * 0.035})`);
-        glow.addColorStop(0.22, 'rgba(120, 0, 0, 0.085)');
-        glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        context.fillStyle = glow;
-        context.fillRect(0, 0, width, height);
-
-        context.save();
-        context.translate(x, y);
-        context.lineWidth = 0.65;
-        const ringCount = 13;
-        for (let index = 0; index < ringCount; index += 1) {
-          const progress = index / ringCount;
-          const phase = time * 0.00015 * (index % 2 ? 1 : -1);
-          context.beginPath();
-          context.strokeStyle = `rgba(${index < 4 ? '182, 0, 0' : '255, 255, 255'}, ${0.05 + (1 - progress) * 0.05})`;
-          context.ellipse(
-            Math.sin(phase + index) * radius * 0.045,
-            Math.cos(phase * 1.2 + index) * radius * 0.035,
-            radius * (0.24 + progress * 0.78),
-            radius * (0.11 + progress * 0.47),
-            phase + index * 0.21,
-            0,
-            Math.PI * 2
-          );
-          context.stroke();
-        }
-        context.restore();
-
-        if (!reducedMotion) animationFrame = requestAnimationFrame(draw);
-      };
-
-      resizeCanvas();
-      draw(performance.now());
-
-      if ('ResizeObserver' in window) {
-        new ResizeObserver(resizeCanvas).observe(stage);
-      } else {
-        window.addEventListener('resize', resizeCanvas, { passive: true });
+      let renderer;
+      try {
+        renderer = new THREE.WebGLRenderer({
+          canvas,
+          context: webglContext,
+          antialias: true,
+          powerPreference: 'high-performance'
+        });
+      } catch (error) {
+        return;
       }
 
-      window.addEventListener('pagehide', () => cancelAnimationFrame(animationFrame));
+      renderer.setClearColor(0x030303, 1);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 0.9;
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x030303, 0.085);
+
+      const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 40);
+      camera.position.set(0, 0, 6.2);
+
+      const sculpture = new THREE.Group();
+      sculpture.rotation.set(-0.12, -0.24, 0.06);
+      scene.add(sculpture);
+
+      const threadColors = [0x500000, 0x680000, 0x7d0000, 0x930404, 0xb60000];
+      const threadMeshes = [];
+      const disposableMaterials = [];
+      const disposableGeometries = [];
+      const threadCount = 10;
+      const anchorCount = 18;
+
+      for (let threadIndex = 0; threadIndex < threadCount; threadIndex += 1) {
+        const phase = threadIndex * 0.73;
+        const points = [];
+
+        for (let anchorIndex = 0; anchorIndex < anchorCount; anchorIndex += 1) {
+          const progress = anchorIndex / (anchorCount - 1);
+          const angle = progress * Math.PI * 2;
+          const irregularity = 1 + 0.08 * Math.sin(angle * 4.3 + phase * 1.7);
+          const x = (
+            Math.sin(angle * 1.15 + phase) * 0.82 +
+            Math.sin(angle * 4.1 - phase * 0.6) * 0.16
+          ) * irregularity;
+          const y = (
+            Math.cos(angle * 0.86 + phase * 0.48) * 0.61 +
+            Math.sin(angle * 3.2 + phase) * 0.18
+          ) * irregularity;
+          const z =
+            Math.sin(angle * 1.78 - phase * 0.72) * 0.5 +
+            Math.cos(angle * 4.7 + phase) * 0.14;
+
+          points.push(new THREE.Vector3(x, y, z));
+        }
+
+        const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal', 0.5);
+        const geometry = new THREE.TubeGeometry(
+          curve,
+          144,
+          0.013 + (threadIndex % 4) * 0.0027,
+          6,
+          false
+        );
+        const color = new THREE.Color(threadColors[threadIndex % threadColors.length]);
+        const material = new THREE.MeshStandardMaterial({
+          color,
+          emissive: color.clone().multiplyScalar(0.3),
+          emissiveIntensity: 0.42,
+          metalness: 0.02,
+          roughness: 0.76
+        });
+        const thread = new THREE.Mesh(geometry, material);
+        const separationDirection = new THREE.Vector3(
+          Math.sin(phase * 1.9),
+          Math.cos(phase * 1.37),
+          Math.sin(phase * 0.83 + 0.7)
+        ).normalize();
+
+        thread.rotation.set(
+          Math.sin(phase) * 0.18,
+          Math.cos(phase * 0.7) * 0.22,
+          Math.sin(phase * 1.3) * 0.14
+        );
+        thread.userData.separationDirection = separationDirection;
+        sculpture.add(thread);
+        threadMeshes.push(thread);
+        disposableGeometries.push(geometry);
+        disposableMaterials.push(material);
+      }
+
+      const ambientLight = new THREE.AmbientLight(0x410000, 2.2);
+      const keyLight = new THREE.DirectionalLight(0xff2929, 3.4);
+      const rimLight = new THREE.DirectionalLight(0x740000, 2.6);
+      const innerLight = new THREE.PointLight(0xb60000, 18, 5.5, 1.8);
+      keyLight.position.set(2.7, 3.1, 4.6);
+      rimLight.position.set(-3.4, -1.2, -2.4);
+      innerLight.position.set(0, 0, 0.45);
+      scene.add(ambientLight, keyLight, rimLight, innerLight);
+
+      const naturalSize = new THREE.Box3()
+        .setFromObject(sculpture)
+        .getSize(new THREE.Vector3());
+      const pointer = { x: 0, y: 0, targetX: 0, targetY: 0, proximity: 0, targetProximity: 0 };
+      const clock = new THREE.Clock(false);
+      let animationFrame = 0;
+      let heroVisible = false;
+      let pageVisible = !document.hidden;
+      let idleRotation = 0;
+      let compression = 1;
+      let compressionVelocity = 0;
+      let baseScale = 1;
+      let resizeObserver;
+      let heroObserver;
+      let destroyed = false;
+
+      const renderScene = () => renderer.render(scene, camera);
+
+      const resize = () => {
+        const bounds = stage.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return;
+
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+        renderer.setSize(bounds.width, bounds.height, false);
+        camera.aspect = bounds.width / bounds.height;
+        camera.updateProjectionMatrix();
+
+        const visibleHeight =
+          2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * camera.position.z;
+        baseScale = (visibleHeight * 0.38) / Math.max(naturalSize.y, 0.001);
+        sculpture.scale.setScalar(baseScale * compression);
+        renderScene();
+      };
+
+      const updatePointer = (event) => {
+        if (coarsePointer || reducedMotion) return;
+        const bounds = stage.getBoundingClientRect();
+        const normalizedX = THREE.MathUtils.clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
+        const normalizedY = THREE.MathUtils.clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
+        const centeredX = normalizedX - 0.5;
+        const centeredY = normalizedY - 0.5;
+        const correctedX = centeredX * camera.aspect;
+        const distance = Math.hypot(correctedX, centeredY);
+
+        pointer.targetX = centeredX * 0.34;
+        pointer.targetY = centeredY * 0.24;
+        pointer.targetProximity = THREE.MathUtils.clamp(1 - distance / 0.34, 0, 1);
+      };
+
+      const resetPointer = () => {
+        pointer.targetX = 0;
+        pointer.targetY = 0;
+        pointer.targetProximity = 0;
+      };
+
+      const compress = () => {
+        if (reducedMotion) return;
+        compressionVelocity = -1.65;
+      };
+
+      const stopLoop = () => {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+        clock.stop();
+      };
+
+      const animate = () => {
+        if (destroyed || !heroVisible || !pageVisible || reducedMotion) {
+          stopLoop();
+          return;
+        }
+
+        const delta = Math.min(clock.getDelta(), 0.05);
+        const elapsed = clock.elapsedTime;
+        idleRotation = (idleRotation + delta * 0.022) % (Math.PI * 2);
+
+        if (coarsePointer) {
+          pointer.targetX = Math.sin(elapsed * 0.16) * 0.1;
+          pointer.targetY = Math.cos(elapsed * 0.13) * 0.07;
+          pointer.targetProximity = 0.1 + Math.sin(elapsed * 0.21) * 0.04;
+        }
+
+        pointer.x = THREE.MathUtils.damp(pointer.x, pointer.targetX, 2.4, delta);
+        pointer.y = THREE.MathUtils.damp(pointer.y, pointer.targetY, 2.4, delta);
+        pointer.proximity = THREE.MathUtils.damp(
+          pointer.proximity,
+          pointer.targetProximity,
+          2.1,
+          delta
+        );
+
+        compressionVelocity += (1 - compression) * 18 * delta;
+        compressionVelocity *= Math.exp(-5.4 * delta);
+        compression += compressionVelocity * delta;
+        compression = THREE.MathUtils.clamp(compression, 0.79, 1.07);
+
+        sculpture.rotation.x = THREE.MathUtils.damp(
+          sculpture.rotation.x,
+          -0.12 + pointer.y,
+          2,
+          delta
+        );
+        sculpture.rotation.y = THREE.MathUtils.damp(
+          sculpture.rotation.y,
+          -0.24 + idleRotation + pointer.x,
+          1.7,
+          delta
+        );
+        sculpture.rotation.z = THREE.MathUtils.damp(
+          sculpture.rotation.z,
+          0.06 + Math.sin(elapsed * 0.11) * 0.025,
+          1.3,
+          delta
+        );
+        sculpture.scale.setScalar(baseScale * compression);
+
+        threadMeshes.forEach((thread, index) => {
+          const direction = thread.userData.separationDirection;
+          const distance = pointer.proximity * (0.075 + (index % 3) * 0.014);
+          thread.position.x = THREE.MathUtils.damp(thread.position.x, direction.x * distance, 2.8, delta);
+          thread.position.y = THREE.MathUtils.damp(thread.position.y, direction.y * distance, 2.8, delta);
+          thread.position.z = THREE.MathUtils.damp(thread.position.z, direction.z * distance, 2.8, delta);
+        });
+
+        renderScene();
+        animationFrame = requestAnimationFrame(animate);
+      };
+
+      const startLoop = () => {
+        if (animationFrame || destroyed || reducedMotion || !heroVisible || !pageVisible) return;
+        clock.start();
+        animationFrame = requestAnimationFrame(animate);
+      };
+
+      const handleVisibilityChange = () => {
+        pageVisible = !document.hidden;
+        if (pageVisible) startLoop();
+        else stopLoop();
+      };
+
+      const cleanup = () => {
+        if (destroyed) return;
+        destroyed = true;
+        stopLoop();
+        abortController.abort();
+        resizeObserver?.disconnect();
+        heroObserver?.disconnect();
+        disposableGeometries.forEach((geometry) => geometry.dispose());
+        disposableMaterials.forEach((material) => material.dispose());
+        renderer.renderLists.dispose();
+        renderer.dispose();
+        renderer.forceContextLoss();
+      };
+
+      stage.addEventListener('pointermove', updatePointer, listenerOptions);
+      stage.addEventListener('pointerleave', resetPointer, listenerOptions);
+      stage.addEventListener('pointerdown', compress, listenerOptions);
+      document.addEventListener('visibilitychange', handleVisibilityChange, listenerOptions);
+      window.addEventListener('pagehide', cleanup, { signal: abortController.signal, once: true });
+
+      if ('ResizeObserver' in window) {
+        resizeObserver = new ResizeObserver(resize);
+        resizeObserver.observe(stage);
+      } else {
+        window.addEventListener('resize', resize, listenerOptions);
+      }
+
+      if ('IntersectionObserver' in window) {
+        heroObserver = new IntersectionObserver((entries) => {
+          heroVisible = entries[0]?.isIntersecting ?? false;
+          if (heroVisible) startLoop();
+          else stopLoop();
+        }, { threshold: 0.01 });
+        heroObserver.observe(stage);
+      } else {
+        heroVisible = true;
+      }
+
+      resize();
+      stage.classList.add('is-webgl');
+      renderScene();
+      if (!reducedMotion) startLoop();
     })();
   </script>
 </body>
