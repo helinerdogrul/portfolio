@@ -1009,7 +1009,7 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 0.9;
+      renderer.toneMappingExposure = 0.82;
 
       const scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x030303, 0.085);
@@ -1063,7 +1063,7 @@
         const material = new THREE.MeshStandardMaterial({
           color,
           emissive: color.clone().multiplyScalar(0.3),
-          emissiveIntensity: 0.42,
+          emissiveIntensity: 0.34,
           metalness: 0.02,
           roughness: 0.76
         });
@@ -1086,10 +1086,10 @@
         disposableMaterials.push(material);
       }
 
-      const ambientLight = new THREE.AmbientLight(0x410000, 2.2);
-      const keyLight = new THREE.DirectionalLight(0xff2929, 3.4);
-      const rimLight = new THREE.DirectionalLight(0x740000, 2.6);
-      const innerLight = new THREE.PointLight(0xb60000, 18, 5.5, 1.8);
+      const ambientLight = new THREE.AmbientLight(0x350000, 1.9);
+      const keyLight = new THREE.DirectionalLight(0xb60000, 3);
+      const rimLight = new THREE.DirectionalLight(0x5c0000, 2.4);
+      const innerLight = new THREE.PointLight(0x940000, 15, 5.5, 1.8);
       keyLight.position.set(2.7, 3.1, 4.6);
       rimLight.position.set(-3.4, -1.2, -2.4);
       innerLight.position.set(0, 0, 0.45);
@@ -1099,7 +1099,8 @@
         .setFromObject(sculpture)
         .getSize(new THREE.Vector3());
       const pointer = { x: 0, y: 0, targetX: 0, targetY: 0, proximity: 0, targetProximity: 0 };
-      const clock = new THREE.Clock(false);
+      const timer = new THREE.Timer();
+      timer.connect(document);
       let animationFrame = 0;
       let heroVisible = false;
       let pageVisible = !document.hidden;
@@ -1124,7 +1125,7 @@
 
         const visibleHeight =
           2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * camera.position.z;
-        baseScale = (visibleHeight * 0.38) / Math.max(naturalSize.y, 0.001);
+        baseScale = (visibleHeight * 0.43) / Math.max(naturalSize.y, 0.001);
         sculpture.scale.setScalar(baseScale * compression);
         renderScene();
       };
@@ -1158,17 +1159,17 @@
       const stopLoop = () => {
         cancelAnimationFrame(animationFrame);
         animationFrame = 0;
-        clock.stop();
       };
 
-      const animate = () => {
+      const animate = (timestamp) => {
         if (destroyed || !heroVisible || !pageVisible || reducedMotion) {
           stopLoop();
           return;
         }
 
-        const delta = Math.min(clock.getDelta(), 0.05);
-        const elapsed = clock.elapsedTime;
+        timer.update(timestamp);
+        const delta = Math.min(timer.getDelta(), 0.05);
+        const elapsed = timer.getElapsed();
         idleRotation = (idleRotation + delta * 0.022) % (Math.PI * 2);
 
         if (coarsePointer) {
@@ -1225,7 +1226,7 @@
 
       const startLoop = () => {
         if (animationFrame || destroyed || reducedMotion || !heroVisible || !pageVisible) return;
-        clock.start();
+        timer.reset();
         animationFrame = requestAnimationFrame(animate);
       };
 
@@ -1244,6 +1245,7 @@
         heroObserver?.disconnect();
         disposableGeometries.forEach((geometry) => geometry.dispose());
         disposableMaterials.forEach((material) => material.dispose());
+        timer.dispose();
         renderer.renderLists.dispose();
         renderer.dispose();
         renderer.forceContextLoss();
