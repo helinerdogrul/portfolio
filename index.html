@@ -444,6 +444,10 @@
       justify-self: end;
     }
 
+    .footer-cta { --reveal-delay: 0ms; }
+    .footer-contact { --reveal-delay: 280ms; }
+    .footer-bottom { --reveal-delay: 560ms; }
+
     :focus-visible {
       outline: 2px solid var(--red);
       outline-offset: 5px;
@@ -799,14 +803,14 @@
   </main>
 
   <footer class="site-footer site-shell" id="contact">
-    <h2 class="footer-cta reveal">Let’s create something<br>meaningful together</h2>
+    <h2 class="footer-cta reveal reveal--footer">Let’s create something<br>meaningful together</h2>
 
-    <div class="footer-contact reveal">
+    <div class="footer-contact reveal reveal--footer">
       <a class="email" href="mailto:work@helinerdogrul.com">work@helinerdogrul.com</a>
       <span class="location">Istanbul x Turkiye</span>
     </div>
 
-    <div class="footer-bottom reveal reveal--early">
+    <div class="footer-bottom reveal reveal--footer">
       <a class="social-link" href="https://www.linkedin.com/in/helin-erdogrul/" target="_blank" rel="noreferrer">LinkedIn</a>
       <a class="social-link" href="https://www.instagram.com/helinerdogrul/" target="_blank" rel="noreferrer">Instagram</a>
       <a class="back-to-top" href="#top">Back to top</a>
@@ -816,8 +820,8 @@
   <script>
     (() => {
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const revealItems = document.querySelectorAll('.reveal:not(.reveal--early)');
-      const earlyRevealItems = document.querySelectorAll('.reveal--early');
+      const revealItems = document.querySelectorAll('.reveal:not(.reveal--footer)');
+      const footerRevealItems = document.querySelectorAll('.reveal--footer');
       const allRevealItems = document.querySelectorAll('.reveal');
 
       if (reducedMotion || !('IntersectionObserver' in window)) {
@@ -841,8 +845,8 @@
           threshold: 0.02
         });
 
-        observeReveals(earlyRevealItems, {
-          rootMargin: '0px 0px 24% 0px',
+        observeReveals(footerRevealItems, {
+          rootMargin: '0px 0px 8% 0px',
           threshold: 0.01
         });
       }
