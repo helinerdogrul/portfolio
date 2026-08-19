@@ -382,9 +382,24 @@
     }
 
     .portrait-frame {
+      position: relative;
       overflow: hidden;
       border-top: 1px solid var(--line);
       padding-top: clamp(2rem, 3vw, 3rem);
+    }
+
+    .portrait-prompt {
+      position: absolute;
+      z-index: 2;
+      top: clamp(0.5rem, 0.75vw, 0.75rem);
+      left: 0;
+      font-family: var(--serif);
+      font-size: clamp(0.85rem, 1.2vw, 1.15rem);
+      letter-spacing: 0.16em;
+      line-height: 1;
+      text-transform: uppercase;
+      white-space: nowrap;
+      pointer-events: none;
     }
 
     .portrait-interaction {
@@ -852,12 +867,13 @@
               <span class="stat-label">Years of Practice</span>
             </div>
             <div class="reveal">
-              <span class="stat-number" data-count="1" data-pad="2">01</span>
+              <span class="stat-number" data-count="1">1</span>
               <span class="stat-label">Awwwards<br>Honorable Mention</span>
             </div>
           </div>
 
           <figure class="portrait-frame reveal">
+            <span class="portrait-prompt">Move to explore</span>
             <div class="portrait-interaction">
               <img
               class="portrait"
