@@ -1009,7 +1009,7 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 0.82;
+      renderer.toneMappingExposure = 0.9;
 
       const scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x030303, 0.085);
@@ -1021,7 +1021,7 @@
       sculpture.rotation.set(-0.12, -0.24, 0.06);
       scene.add(sculpture);
 
-      const threadColors = [0x430000, 0x570000, 0x6d0000, 0x830000, 0x9a0000, 0xb60000];
+      const threadColors = [0x500000, 0x640000, 0x780000, 0x8c0000, 0xa10000, 0xb60000];
       const threadMeshes = [];
       const disposableMaterials = [];
       const disposableGeometries = [];
@@ -1065,15 +1065,15 @@
         const geometry = new THREE.TubeGeometry(
           curve,
           168,
-          0.008 + (threadIndex % 5) * 0.00125,
+          0.0095 + (threadIndex % 5) * 0.00135,
           5,
           false
         );
         const color = new THREE.Color(threadColors[threadIndex % threadColors.length]);
         const material = new THREE.MeshStandardMaterial({
           color,
-          emissive: color.clone().multiplyScalar(0.16),
-          emissiveIntensity: 0.14,
+          emissive: color.clone().multiplyScalar(0.18),
+          emissiveIntensity: 0.12,
           metalness: 0,
           roughness: 0.9
         });
@@ -1096,10 +1096,10 @@
         disposableMaterials.push(material);
       }
 
-      const ambientLight = new THREE.AmbientLight(0x300000, 1.55);
-      const keyLight = new THREE.DirectionalLight(0xb60000, 2.45);
-      const rimLight = new THREE.DirectionalLight(0x520000, 1.8);
-      const innerLight = new THREE.PointLight(0x820000, 5.5, 4.8, 2);
+      const ambientLight = new THREE.AmbientLight(0x350000, 1.8);
+      const keyLight = new THREE.DirectionalLight(0xb60000, 3.6);
+      const rimLight = new THREE.DirectionalLight(0x5c0000, 2.4);
+      const innerLight = new THREE.PointLight(0x820000, 3.5, 4.8, 2);
       keyLight.position.set(2.7, 3.1, 4.6);
       rimLight.position.set(-3.4, -1.2, -2.4);
       innerLight.position.set(0, 0, 0.45);
@@ -1135,7 +1135,7 @@
 
         const visibleHeight =
           2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * camera.position.z;
-        baseScale = (visibleHeight * 0.45) / Math.max(naturalSize.y, 0.001);
+        baseScale = (visibleHeight * 0.47) / Math.max(naturalSize.y, 0.001);
         sculpture.scale.setScalar(baseScale * compression);
         renderScene();
       };
