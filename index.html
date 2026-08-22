@@ -1405,6 +1405,7 @@
         uniform vec2 uUvOffset;
         uniform float uStrength;
         uniform float uAspect;
+        uniform float uTime;
         varying vec2 vUv;
 
         float randomCell(vec2 cell) {
@@ -1463,9 +1464,34 @@
 
           float currentSpeed = min(length(uVelocity), 2.8);
           vec2 currentDirection = uVelocity / max(currentSpeed, 0.001);
+          vec2 currentPerpendicular = vec2(-currentDirection.y, currentDirection.x);
           vec2 pointerDelta = vUv - uPointer;
           pointerDelta.x *= uAspect;
           float pointerMask = smoothstep(0.24 + currentSpeed * 0.02, 0.012, length(pointerDelta));
+          vec2 currentCellDelta = coarseCenter - uPointer;
+          currentCellDelta.x *= uAspect;
+          float cellInteractionMask = smoothstep(0.56, 0.015, length(currentCellDelta));
+
+          vec2 pointerTravel = uPointer - vec2(0.5);
+          vec2 cellPolarity = vec2(coarseRandomA, coarseRandomB) * 2.0 - 1.0;
+          vec2 cellParallax = vec2(
+            pointerTravel.x * cellPolarity.x + pointerTravel.y * cellPolarity.y * 0.32,
+            pointerTravel.y * cellPolarity.y - pointerTravel.x * cellPolarity.x * 0.24
+          );
+          cellParallax *= uStrength * cellInteractionMask * (0.028 + currentSpeed * 0.009);
+
+          float cellPhase = uTime * (0.72 + coarseRandomB * 0.48) + coarseRandomA * 6.283185;
+          vec2 cellDrift = vec2(cos(cellPhase), sin(cellPhase));
+          cellDrift *= uStrength * cellInteractionMask * currentSpeed
+            * (0.0018 + coarseRandomB * 0.0024);
+
+          float sliceSign = step(0.5, fineRandom) * 2.0 - 1.0;
+          vec2 velocityParallax = currentDirection * sliceSign * currentSpeed * uStrength
+            * cellInteractionMask * (0.006 + coarseRandomA * 0.008);
+          velocityParallax += currentPerpendicular * (coarseRandomB - 0.5) * currentSpeed
+            * uStrength * cellInteractionMask * 0.0045;
+
+          totalShift += cellParallax + cellDrift + velocityParallax;
           float band = floor(vUv.y * 38.0);
           float bandOffset = randomCell(vec2(band, coarseCell.x)) - 0.5;
           totalShift += currentDirection * bandOffset * pointerMask * uStrength
@@ -1559,17 +1585,17 @@
 
         const delta = Math.min(Math.max((now - lastFrameTime) / 1000, 1 / 240), 0.05);
         lastFrameTime = now;
-        const pointerEase = 1 - Math.exp(-delta * 9.5);
-        const velocityEase = 1 - Math.exp(-delta * 13.5);
-        const energyEase = 1 - Math.exp(-delta * 9);
+        const pointerEase = 1 - Math.exp(-delta * 16);
+        const velocityEase = 1 - Math.exp(-delta * 17);
+        const energyEase = 1 - Math.exp(-delta * 13);
         const idleTime = (now - lastInputTime) / 1000;
 
         pointer.lerp(pointerTarget, pointerEase);
         velocity.lerp(velocityTarget, velocityEase);
-        velocityTarget.multiplyScalar(Math.exp(-delta * 3.6));
+        velocityTarget.multiplyScalar(Math.exp(-delta * 4.6));
 
         if (idleTime > 0.04) {
-          const recovery = pointerInside ? 1.75 : 3.8;
+          const recovery = pointerInside ? 2.35 : 5.2;
           energyTarget *= Math.exp(-delta * recovery);
         }
 
@@ -1579,10 +1605,10 @@
         trailStrengths[0] += (energy - trailStrengths[0]) * (1 - Math.exp(-delta * 13));
 
         for (let index = 1; index < TRAIL_LENGTH; index += 1) {
-          const followEase = 1 - Math.exp(-delta * (10.5 - index * 0.72));
-          const velocityFollowEase = 1 - Math.exp(-delta * (9 - index * 0.5));
-          const strengthFollowEase = 1 - Math.exp(-delta * (8.5 - index * 0.42));
-          const targetStrength = trailStrengths[index - 1] * (0.78 - index * 0.025);
+          const followEase = 1 - Math.exp(-delta * (23 - index * 0.9));
+          const velocityFollowEase = 1 - Math.exp(-delta * (19 - index * 0.7));
+          const strengthFollowEase = 1 - Math.exp(-delta * (17 - index * 0.6));
+          const targetStrength = trailStrengths[index - 1] * (0.72 - index * 0.03);
 
           trailPoints[index].lerp(trailPoints[index - 1], followEase);
           trailVelocities[index].lerp(trailVelocities[index - 1], velocityFollowEase);
@@ -1592,6 +1618,7 @@
         material.uniforms.uPointer.value.copy(pointer);
         material.uniforms.uVelocity.value.copy(velocity);
         material.uniforms.uStrength.value = energy;
+        material.uniforms.uTime.value = now * 0.001;
         renderScene();
 
         const trailIsSettling = trailStrengths.some((strength) => strength > 0.0015)
@@ -1717,7 +1744,8 @@
               uUvScale: { value: new THREE.Vector2(1, 1) },
               uUvOffset: { value: new THREE.Vector2(0, 0) },
               uStrength: { value: 0 },
-              uAspect: { value: 1 }
+              uAspect: { value: 1 },
+              uTime: { value: 0 }
             },
             vertexShader,
             fragmentShader,
