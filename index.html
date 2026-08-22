@@ -1367,6 +1367,7 @@
       let previousPointerValid = false;
       let previousPointerTime = 0;
       let lastFrameTime = 0;
+      let lastAmbientRenderTime = 0;
       let lastInputTime = 0;
       let energy = 0;
       let energyTarget = 0;
@@ -1406,6 +1407,7 @@
         uniform float uStrength;
         uniform float uAspect;
         uniform float uTime;
+        uniform float uAmbient;
         varying vec2 vUv;
 
         float randomCell(vec2 cell) {
@@ -1423,6 +1425,17 @@
           float coarseRandomB = randomCell(coarseCell + vec2(19.7, 7.3));
           float fineRandom = randomCell(fineCell + vec2(4.3, 29.1));
           vec2 totalShift = vec2(0.0);
+
+          float ambientPhase = uTime * (0.34 + coarseRandomB * 0.22)
+            + coarseRandomA * 6.283185;
+          float ambientBreath = 0.64 + sin(
+            uTime * (0.46 + fineRandom * 0.18) + coarseRandomB * 6.283185
+          ) * 0.36;
+          vec2 ambientDirection = vec2(cos(ambientPhase), sin(ambientPhase));
+          vec2 ambientPolarity = vec2(coarseRandomA, coarseRandomB) * 2.0 - 1.0;
+          vec2 ambientShift = ambientDirection * (0.0062 + coarseRandomA * 0.0098);
+          ambientShift += ambientPolarity * (0.0042 + fineRandom * 0.0058) * ambientBreath;
+          totalShift += ambientShift * uAmbient * (1.0 - uStrength * 0.42);
 
           for (int i = 0; i < 6; i++) {
             vec2 trailPoint = uTrailPoints[i];
@@ -1619,7 +1632,6 @@
         material.uniforms.uVelocity.value.copy(velocity);
         material.uniforms.uStrength.value = energy;
         material.uniforms.uTime.value = now * 0.001;
-        renderScene();
 
         const trailIsSettling = trailStrengths.some((strength) => strength > 0.0015)
           || trailVelocities.some((trailVelocity) => trailVelocity.lengthSq() > 0.00002);
@@ -1629,12 +1641,15 @@
           || velocityTarget.lengthSq() > 0.00002
           || trailIsSettling;
 
-        if (stillSettling) {
-          animationFrame = requestAnimationFrame(animate);
-        } else {
+        if (!stillSettling) {
           resetMotion();
-          renderScene();
         }
+
+        if (stillSettling || now - lastAmbientRenderTime >= 1000 / 30) {
+          renderScene();
+          lastAmbientRenderTime = now;
+        }
+        animationFrame = requestAnimationFrame(animate);
       };
 
       const normalizedPointer = (event) => {
@@ -1704,7 +1719,7 @@
       const handleVisibilityChange = () => {
         pageVisible = !document.hidden;
         if (!pageVisible) stopLoop();
-        else if (energy > 0.0015 || energyTarget > 0.0015) startLoop();
+        else startLoop();
       };
 
       const initialize = async () => {
@@ -1745,7 +1760,8 @@
               uUvOffset: { value: new THREE.Vector2(0, 0) },
               uStrength: { value: 0 },
               uAspect: { value: 1 },
-              uTime: { value: 0 }
+              uTime: { value: 0 },
+              uAmbient: { value: coarsePointer ? 0.58 : 1 }
             },
             vertexShader,
             fragmentShader,
@@ -1774,6 +1790,7 @@
           resize();
           renderScene();
           stage.classList.add('is-webgl');
+          startLoop();
         } catch (error) {
           initializing = false;
           stage.classList.remove('is-webgl');
