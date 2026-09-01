@@ -158,7 +158,6 @@
       aspect-ratio: 1.855 / 1;
       color: #fff;
       background: #030303;
-      cursor: crosshair;
       isolation: isolate;
     }
 
@@ -173,63 +172,15 @@
       pointer-events: none;
     }
 
-    .hero-canvas {
+    .hero-video {
       position: absolute;
+      display: block;
       width: 100%;
       height: 100%;
       inset: 0;
-      opacity: 0;
+      object-fit: cover;
+      object-position: center;
       pointer-events: none;
-      transition: opacity 900ms ease;
-    }
-
-    .hero-fallback {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: min(46%, 36rem);
-      height: 43%;
-      overflow: visible;
-      opacity: 0.82;
-      filter: drop-shadow(0 0 10px rgba(182, 0, 0, 0.08));
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      transition: opacity 700ms ease;
-    }
-
-    .hero-visual.is-webgl .hero-canvas { opacity: 1; }
-    .hero-visual.is-webgl .hero-fallback { opacity: 0; }
-
-    .hero-fallback path {
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      vector-effect: non-scaling-stroke;
-    }
-
-    .visual-meta {
-      position: absolute;
-      z-index: 2;
-      right: clamp(1rem, 2vw, 2rem);
-      bottom: clamp(1rem, 2vw, 2rem);
-      display: flex;
-      gap: 0.45rem;
-      align-items: center;
-      margin: 0;
-      color: rgba(255, 255, 255, 0.55);
-      font-size: 0.63rem;
-      letter-spacing: 0.13em;
-      text-transform: uppercase;
-      mix-blend-mode: screen;
-    }
-
-    .visual-meta::before {
-      width: 0.42rem;
-      height: 0.42rem;
-      border-radius: 50%;
-      background: var(--red);
-      box-shadow: 0 0 14px rgba(182, 0, 0, 0.85);
-      content: "";
     }
 
     .intro {
@@ -724,8 +675,7 @@
         will-change: auto;
       }
 
-      .hero-canvas,
-      .hero-fallback { transition: none; }
+      .hero-video { transition: none; }
     }
   </style>
 </head>
@@ -745,22 +695,19 @@
 
   <main id="main">
     <div class="site-shell">
-      <section class="hero-visual reveal reveal--hero" aria-label="Interactive red thread sculpture">
-        <canvas class="hero-canvas" aria-hidden="true"></canvas>
-        <svg class="hero-fallback" viewBox="0 0 420 260" aria-hidden="true" focusable="false">
-          <g opacity="0.96">
-            <path d="M71 165C99 86 155 68 217 122C279 176 317 168 350 90" stroke="#8f0000" stroke-width="1.2"/>
-            <path d="M88 84C142 180 218 197 308 102C326 83 342 99 333 131" stroke="#b60000" stroke-width="1"/>
-            <path d="M117 189C91 140 132 74 206 84C287 95 322 145 303 188" stroke="#6f0000" stroke-width="1.4"/>
-            <path d="M100 125C151 104 190 179 250 165C303 153 306 88 277 69" stroke="#a10707" stroke-width="0.9"/>
-            <path d="M144 65C171 84 151 145 197 181C236 212 285 161 268 111" stroke="#770000" stroke-width="1.6"/>
-            <path d="M77 139C132 155 159 112 208 105C262 97 303 125 344 151" stroke="#9b0000" stroke-width="1"/>
-            <path d="M126 97C177 57 251 71 290 130C319 174 278 202 230 177" stroke="#5d0000" stroke-width="1.3"/>
-            <path d="M158 194C190 148 166 99 207 70C241 45 297 83 302 126" stroke="#b60000" stroke-width="0.8"/>
-            <path d="M91 111C126 175 193 146 239 100C277 62 325 85 326 126" stroke="#820000" stroke-width="1.4"/>
-          </g>
-        </svg>
-        <p class="visual-meta">Move to explore</p>
+      <section class="hero-visual reveal reveal--hero" aria-label="Abstract motion artwork">
+        <video
+          class="hero-video"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          poster="hero-poster.jpg"
+          aria-hidden="true"
+        >
+          <source src="hero-optimized.mp4" type="video/mp4">
+        </video>
       </section>
 
       <section class="intro" aria-label="Introduction">
