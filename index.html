@@ -1320,6 +1320,24 @@
       let energy = 0;
       let energyTarget = 0;
 
+      const settings = Object.freeze({
+        coarseX: 10,
+        coarseY: 10,
+        fineX: 16,
+        fineY: 27,
+        motionSpeed: 1.1,
+        ambientAmount: 1.25,
+        interactionStrength: 1.55,
+        radius: 0.39,
+        parallax: 1,
+        detailMix: 0,
+        banding: 0,
+        velocityScale: 1.35,
+        responsiveness: 1.95,
+        recoverySpeed: 2.1,
+        trailDecay: 0.72
+      });
+
       const TRAIL_LENGTH = 6;
 
       const pointer = new THREE.Vector2(0.5, 0.5);
@@ -1356,6 +1374,13 @@
         uniform float uAspect;
         uniform float uTime;
         uniform float uAmbient;
+        uniform vec2 uCoarseGrid;
+        uniform vec2 uFineGrid;
+        uniform float uRadius;
+        uniform float uParallax;
+        uniform float uDetailMix;
+        uniform float uBanding;
+        uniform float uVelocityScale;
         varying vec2 vUv;
 
         float randomCell(vec2 cell) {
@@ -1363,8 +1388,8 @@
         }
 
         void main() {
-          vec2 coarseGrid = vec2(8.0, 11.0);
-          vec2 fineGrid = vec2(19.0, 27.0);
+          vec2 coarseGrid = uCoarseGrid;
+          vec2 fineGrid = uFineGrid;
           vec2 coarseCell = floor(vUv * coarseGrid);
           vec2 fineCell = floor(vUv * fineGrid);
           vec2 coarseCenter = (coarseCell + 0.5) / coarseGrid;
@@ -1376,25 +1401,26 @@
 
           float ambientPhase = uTime * (0.34 + coarseRandomB * 0.22)
             + coarseRandomA * 6.283185;
+          float ambientFine = mix(0.5, fineRandom, uDetailMix);
           float ambientBreath = 0.64 + sin(
-            uTime * (0.46 + fineRandom * 0.18) + coarseRandomB * 6.283185
+            uTime * (0.46 + ambientFine * 0.18) + coarseRandomB * 6.283185
           ) * 0.36;
           vec2 ambientDirection = vec2(cos(ambientPhase), sin(ambientPhase));
           vec2 ambientPolarity = vec2(coarseRandomA, coarseRandomB) * 2.0 - 1.0;
           vec2 ambientShift = ambientDirection * (0.0062 + coarseRandomA * 0.0098);
-          ambientShift += ambientPolarity * (0.0042 + fineRandom * 0.0058) * ambientBreath;
+          ambientShift += ambientPolarity * (0.0042 + ambientFine * 0.0058) * ambientBreath;
           totalShift += ambientShift * uAmbient * (1.0 - uStrength * 0.42);
 
           for (int i = 0; i < 6; i++) {
             vec2 trailPoint = uTrailPoints[i];
             vec2 trailVelocity = uTrailVelocities[i];
-            float speed = min(length(trailVelocity), 2.8);
+            float speed = min(length(trailVelocity) * uVelocityScale, 2.8);
             vec2 direction = trailVelocity / max(speed, 0.001);
             vec2 perpendicular = vec2(-direction.y, direction.x);
             vec2 pointDelta = vUv - trailPoint;
             pointDelta.x *= uAspect;
 
-            float radius = 0.255 + speed * 0.026;
+            float radius = uRadius + speed * 0.026;
             float localMask = smoothstep(radius, 0.018, length(pointDelta));
             localMask *= localMask;
 
@@ -1418,20 +1444,20 @@
             totalShift += direction * coarseAmount * (0.62 + coarseRandomB * 0.76);
             totalShift += perpendicular * coarseAmount * (coarseRandomB - 0.5) * 0.82;
 
-            float fineAmount = trailWeight * fineMask * speed * 0.0065 * depthFade;
+            float fineAmount = trailWeight * fineMask * speed * 0.0065 * depthFade * uDetailMix;
             totalShift += direction * fineAmount * (fineRandom - 0.5);
             totalShift += perpendicular * fineAmount * (coarseRandomA - 0.5) * 0.42;
           }
 
-          float currentSpeed = min(length(uVelocity), 2.8);
+          float currentSpeed = min(length(uVelocity) * uVelocityScale, 2.8);
           vec2 currentDirection = uVelocity / max(currentSpeed, 0.001);
           vec2 currentPerpendicular = vec2(-currentDirection.y, currentDirection.x);
           vec2 pointerDelta = vUv - uPointer;
           pointerDelta.x *= uAspect;
-          float pointerMask = smoothstep(0.24 + currentSpeed * 0.02, 0.012, length(pointerDelta));
+          float pointerMask = smoothstep(max(0.03, uRadius - 0.015) + currentSpeed * 0.02, 0.012, length(pointerDelta));
           vec2 currentCellDelta = coarseCenter - uPointer;
           currentCellDelta.x *= uAspect;
-          float cellInteractionMask = smoothstep(0.56, 0.015, length(currentCellDelta));
+          float cellInteractionMask = smoothstep(uRadius * 2.2, 0.015, length(currentCellDelta));
 
           vec2 pointerTravel = uPointer - vec2(0.5);
           vec2 cellPolarity = vec2(coarseRandomA, coarseRandomB) * 2.0 - 1.0;
@@ -1439,24 +1465,24 @@
             pointerTravel.x * cellPolarity.x + pointerTravel.y * cellPolarity.y * 0.32,
             pointerTravel.y * cellPolarity.y - pointerTravel.x * cellPolarity.x * 0.24
           );
-          cellParallax *= uStrength * cellInteractionMask * (0.028 + currentSpeed * 0.009);
+          cellParallax *= uStrength * uParallax * cellInteractionMask * (0.028 + currentSpeed * 0.009);
 
           float cellPhase = uTime * (0.72 + coarseRandomB * 0.48) + coarseRandomA * 6.283185;
           vec2 cellDrift = vec2(cos(cellPhase), sin(cellPhase));
-          cellDrift *= uStrength * cellInteractionMask * currentSpeed
+          cellDrift *= uStrength * uParallax * cellInteractionMask * currentSpeed
             * (0.0018 + coarseRandomB * 0.0024);
 
           float sliceSign = step(0.5, fineRandom) * 2.0 - 1.0;
-          vec2 velocityParallax = currentDirection * sliceSign * currentSpeed * uStrength
+          vec2 velocityParallax = currentDirection * sliceSign * currentSpeed * uStrength * uParallax * uDetailMix
             * cellInteractionMask * (0.006 + coarseRandomA * 0.008);
           velocityParallax += currentPerpendicular * (coarseRandomB - 0.5) * currentSpeed
-            * uStrength * cellInteractionMask * 0.0045;
+            * uStrength * uParallax * cellInteractionMask * 0.0045;
 
           totalShift += cellParallax + cellDrift + velocityParallax;
           float band = floor(vUv.y * 38.0);
           float bandOffset = randomCell(vec2(band, coarseCell.x)) - 0.5;
           totalShift += currentDirection * bandOffset * pointerMask * uStrength
-            * currentSpeed * 0.0055;
+            * currentSpeed * 0.0055 * uBanding;
 
           vec2 displacedUv = vUv - totalShift;
           vec2 imageUv = displacedUv * uUvScale + uUvOffset;
@@ -1546,9 +1572,9 @@
 
         const delta = Math.min(Math.max((now - lastFrameTime) / 1000, 1 / 240), 0.05);
         lastFrameTime = now;
-        const pointerEase = 1 - Math.exp(-delta * 16);
-        const velocityEase = 1 - Math.exp(-delta * 17);
-        const energyEase = 1 - Math.exp(-delta * 13);
+        const pointerEase = 1 - Math.exp(-delta * 16 * settings.responsiveness);
+        const velocityEase = 1 - Math.exp(-delta * 17 * settings.responsiveness);
+        const energyEase = 1 - Math.exp(-delta * 13 * settings.responsiveness);
         const idleTime = (now - lastInputTime) / 1000;
 
         pointer.lerp(pointerTarget, pointerEase);
@@ -1556,7 +1582,7 @@
         velocityTarget.multiplyScalar(Math.exp(-delta * 4.6));
 
         if (idleTime > 0.04) {
-          const recovery = pointerInside ? 2.35 : 5.2;
+          const recovery = (pointerInside ? 2.35 : 5.2) * settings.recoverySpeed;
           energyTarget *= Math.exp(-delta * recovery);
         }
 
@@ -1569,7 +1595,8 @@
           const followEase = 1 - Math.exp(-delta * (23 - index * 0.9));
           const velocityFollowEase = 1 - Math.exp(-delta * (19 - index * 0.7));
           const strengthFollowEase = 1 - Math.exp(-delta * (17 - index * 0.6));
-          const targetStrength = trailStrengths[index - 1] * (0.72 - index * 0.03);
+          const targetStrength = trailStrengths[index - 1]
+            * Math.max(0.05, settings.trailDecay - index * 0.03);
 
           trailPoints[index].lerp(trailPoints[index - 1], followEase);
           trailVelocities[index].lerp(trailVelocities[index - 1], velocityFollowEase);
@@ -1578,8 +1605,8 @@
 
         material.uniforms.uPointer.value.copy(pointer);
         material.uniforms.uVelocity.value.copy(velocity);
-        material.uniforms.uStrength.value = energy;
-        material.uniforms.uTime.value = now * 0.001;
+        material.uniforms.uStrength.value = energy * settings.interactionStrength;
+        material.uniforms.uTime.value = now * 0.001 * settings.motionSpeed;
 
         const trailIsSettling = trailStrengths.some((strength) => strength > 0.0015)
           || trailVelocities.some((trailVelocity) => trailVelocity.lengthSq() > 0.00002);
@@ -1709,7 +1736,14 @@
               uStrength: { value: 0 },
               uAspect: { value: 1 },
               uTime: { value: 0 },
-              uAmbient: { value: coarsePointer ? 0.58 : 1 }
+              uAmbient: { value: settings.ambientAmount * (coarsePointer ? 0.58 : 1) },
+              uCoarseGrid: { value: new THREE.Vector2(settings.coarseX, settings.coarseY) },
+              uFineGrid: { value: new THREE.Vector2(settings.fineX, settings.fineY) },
+              uRadius: { value: settings.radius },
+              uParallax: { value: settings.parallax },
+              uDetailMix: { value: settings.detailMix },
+              uBanding: { value: settings.banding },
+              uVelocityScale: { value: settings.velocityScale }
             },
             vertexShader,
             fragmentShader,
