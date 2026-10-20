@@ -5,6 +5,11 @@ import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 
 const root = new URL('../', import.meta.url);
 let html = readFileSync(new URL('index.html', root), 'utf8');
+// Keep the existing Turkish draft while its public route is temporarily paused.
+if (!html.includes('<nav class="language-switch"')) {
+  console.log('Turkish is offline. Existing tr/index.html draft preserved; generation skipped.');
+  process.exit(0);
+}
 const title = 'Helin Erdoğrul | İstanbul’da Tasarımcı & Sanat Yönetmeni';
 const description = 'Helin Erdoğrul, İstanbul merkezli tasarımcı ve sanat yönetmeni. Marka kimliği, editoryal tasarım, dijital deneyimler ve hareketli görüntü projelerini keşfedin.';
 

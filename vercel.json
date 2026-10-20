@@ -8,9 +8,9 @@
       "permanent": true
     },
     {
-      "source": "/tr/index.html",
-      "destination": "/tr/",
-      "permanent": true
+      "source": "/tr/:path*",
+      "destination": "/",
+      "permanent": false
     }
   ]
 }

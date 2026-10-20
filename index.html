@@ -10,13 +10,9 @@
   <meta name="theme-color" content="#f7f6f4">
   <title>Helin Erdoğrul | Designer &amp; Art Director in Istanbul</title>
   <link rel="canonical" href="https://www.helinerdogrul.com/">
-  <link rel="alternate" hreflang="en" href="https://www.helinerdogrul.com/">
-  <link rel="alternate" hreflang="tr" href="https://www.helinerdogrul.com/tr/">
-  <link rel="alternate" hreflang="x-default" href="https://www.helinerdogrul.com/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Helin Erdoğrul">
   <meta property="og:locale" content="en_US">
-  <meta property="og:locale:alternate" content="tr_TR">
   <meta property="og:title" content="Helin Erdoğrul | Designer &amp; Art Director in Istanbul">
   <meta property="og:description" content="Helin Erdoğrul is an Istanbul-based designer and art director creating brand identities, editorial design, digital experiences, and moving image.">
   <meta property="og:url" content="https://www.helinerdogrul.com/">
@@ -45,7 +41,7 @@
           "url": "https://www.helinerdogrul.com/",
           "name": "Helin Erdoğrul",
           "alternateName": "Helin Erdogrul",
-          "inLanguage": ["en", "tr"],
+          "inLanguage": "en",
           "publisher": { "@id": "https://www.helinerdogrul.com/#person" }
         },
         {
@@ -160,41 +156,7 @@
       display: grid;
       grid-template-columns: var(--grid-split) calc(100% - var(--grid-split));
       align-items: center;
-      align-content: center;
-      row-gap: 0.55rem;
-      min-height: clamp(7rem, 9vw, 8.5rem);
-      padding-block: 0.65rem 1.2rem;
-    }
-
-    .language-switch {
-      grid-column: 1 / -1;
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      width: max-content;
-      font-size: 0.65rem;
-      font-weight: 500;
-      letter-spacing: 0.06em;
-    }
-
-    .language-switch a {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 1.6rem;
-      min-height: 1.75rem;
-      color: #686565;
-      text-underline-offset: 0.25rem;
-    }
-
-    .language-switch a:first-child { justify-content: flex-start; }
-    .language-switch span { color: var(--gray); }
-
-    .language-switch a[aria-current="page"],
-    .language-switch a:hover,
-    .language-switch a:focus-visible {
-      color: var(--red);
-      text-decoration: underline;
+      min-height: clamp(5.5rem, 8vw, 7.25rem);
     }
 
     .brand-heading {
@@ -660,7 +622,7 @@
 
       .site-header {
         grid-template-columns: 1fr auto;
-        min-height: 7rem;
+        min-height: 5.8rem;
       }
 
       .brand {
@@ -758,7 +720,7 @@
         grid-template-columns: 1fr;
         gap: 0.9rem;
         align-content: center;
-        min-height: 9rem;
+        min-height: 7.4rem;
       }
 
       .site-nav ul { justify-content: space-between; }
@@ -818,11 +780,6 @@
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header site-shell reveal reveal--header" id="top">
-    <nav class="language-switch" aria-label="Language">
-      <a href="/tr/" data-local-href="tr/index.html" lang="tr" hreflang="tr" aria-label="Türkçe">TR</a>
-      <span aria-hidden="true">|</span>
-      <a href="/" data-local-href="index.html" lang="en" hreflang="en" aria-label="English" aria-current="page">EN</a>
-    </nav>
     <h1 class="brand-heading"><a class="brand" href="#top" aria-label="Helin Erdoğrul, back to top">HELIN ERDOGRUL</a></h1>
     <nav class="site-nav" aria-label="Main navigation">
       <ul>
@@ -999,20 +956,6 @@
 
   <script>
     (() => {
-      const languageLinks = [...document.querySelectorAll('.language-switch a')].map((link) => ({
-        link,
-        href: window.location.protocol === 'file:' ? link.dataset.localHref : link.getAttribute('href')
-      }));
-      const updateLanguageLinks = () => {
-        languageLinks.forEach(({ link, href }) => {
-          const target = new URL(href, window.location.href);
-          target.hash = window.location.hash;
-          link.href = target.href;
-        });
-      };
-      updateLanguageLinks();
-      window.addEventListener('hashchange', updateLanguageLinks);
-
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const revealItems = document.querySelectorAll('.reveal:not(.reveal--footer)');
       const footerRevealItems = document.querySelectorAll('.reveal--footer');
