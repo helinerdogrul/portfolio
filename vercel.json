@@ -8,6 +8,11 @@
       "permanent": true
     },
     {
+      "source": "/tr/",
+      "destination": "/",
+      "permanent": false
+    },
+    {
       "source": "/tr/:path*",
       "destination": "/",
       "permanent": false
