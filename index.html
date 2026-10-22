@@ -443,6 +443,48 @@
       pointer-events: none;
     }
 
+    .portrait-sound-toggle {
+      position: absolute;
+      z-index: 3;
+      top: clamp(0.25rem, 0.5vw, 0.5rem);
+      right: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-height: 1.75rem;
+      padding: 0.15rem 0 0.15rem 0.5rem;
+      border: 0;
+      color: #686565;
+      background: transparent;
+      font-family: var(--sans);
+      font-size: 0.62rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      line-height: 1;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .portrait-sound-toggle[hidden] { display: none; }
+    .portrait-sound-toggle::before {
+      width: 0.3rem;
+      height: 0.3rem;
+      border-radius: 50%;
+      background: currentColor;
+      content: '';
+    }
+    .portrait-sound-toggle[aria-pressed="true"],
+    .portrait-sound-toggle:hover { color: var(--red); }
+
+    .portrait-sound-status {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
     .portrait-interaction {
       position: relative;
       width: 100%;
@@ -921,7 +963,9 @@
 
           <figure class="portrait-frame reveal">
             <span class="portrait-prompt">Move to explore</span>
-            <div class="portrait-interaction">
+            <button class="portrait-sound-toggle" type="button" aria-label="Disable portrait sound" aria-pressed="true" hidden>Sound on</button>
+            <span class="portrait-sound-status" role="status" aria-live="polite"></span>
+            <div class="portrait-interaction" data-sound-src="portrait-sound.m4a">
               <img
               class="portrait"
               src="portrait-01.jpg"
@@ -1064,6 +1108,7 @@
     })();
   </script>
 
+  <script src="portrait-sound.js"></script>
   <script type="module">
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.min.js';
 
@@ -1762,6 +1807,7 @@
         velocityTarget.lerp(rawVelocity, coarsePointer ? 0.35 : 0.72);
 
         const speed = rawVelocity.length();
+        stage.dispatchEvent(new CustomEvent('portrait-motion', { detail: { speed } }));
         const inputScale = coarsePointer ? 0.46 : 1;
         energyTarget = Math.max(energyTarget, Math.min(1, (0.05 + speed * 0.48) * inputScale));
         pointerTarget.copy(nextPointer);
@@ -1873,6 +1919,7 @@
           resize();
           renderScene();
           stage.classList.add('is-webgl');
+          stage.dispatchEvent(new Event('portrait-motion-ready'));
           startLoop();
         } catch (error) {
           initializing = false;
